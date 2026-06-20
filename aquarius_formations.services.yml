@@ -1,0 +1,7 @@
+services:
+  aquarius_formations.progression_calculator:
+    class: Drupal\aquarius_formations\Service\ProgressionCalculator
+
+  aquarius_formations.formation_access_checker:
+    class: Drupal\aquarius_formations\Service\FormationAccessChecker
+    arguments: ['@current_user']

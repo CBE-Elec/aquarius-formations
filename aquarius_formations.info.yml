@@ -1,0 +1,10 @@
+name: Aquarius Formations
+type: module
+description: 'Gestion des formations de plongee avec Group.'
+package: Aquarius
+core_version_requirement: ^10 || ^11
+dependencies:
+  - group:group
+  - drupal:node
+  - drupal:user
+  - drupal:views

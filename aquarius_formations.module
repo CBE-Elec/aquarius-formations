@@ -1,0 +1,16 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function aquarius_formations_help(string $route_name, RouteMatchInterface $route_match): ?string {
+  if ($route_name === 'help.page.aquarius_formations') {
+    return t('Aquarius Formations fournit la gestion des formations, des evaluations et du suivi de progression.');
+  }
+
+  return NULL;
+}

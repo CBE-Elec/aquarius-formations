@@ -1,0 +1,32 @@
+administer aquarius formations:
+  title: 'Administrer Aquarius Formations'
+  description: 'Configurer le module et gerer toutes les formations.'
+  restrict access: true
+
+access aquarius formations overview:
+  title: 'Acceder a la vue d''ensemble des formations'
+  description: 'Voir les pages d''administration des formations.'
+
+create aquarius formations:
+  title: 'Creer des formations'
+  description: 'Creer de nouvelles formations.'
+
+manage aquarius formation members:
+  title: 'Gerer les membres des formations'
+  description: 'Ajouter, retirer et modifier le statut des membres.'
+
+create aquarius evaluations:
+  title: 'Creer des evaluations'
+  description: 'Creer des evaluations pour les eleves.'
+
+edit own aquarius evaluations:
+  title: 'Modifier ses propres evaluations'
+  description: 'Modifier les evaluations creees par l''utilisateur courant.'
+
+edit any aquarius evaluations:
+  title: 'Modifier toutes les evaluations'
+  description: 'Modifier toute evaluation dans les formations accessibles.'
+
+view own aquarius evaluations:
+  title: 'Voir ses propres evaluations'
+  description: 'Voir les evaluations liees a l''eleve courant.'

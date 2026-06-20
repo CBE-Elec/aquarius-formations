@@ -1,0 +1,13 @@
+aquarius_formations.admin_overview:
+  title: 'Formations'
+  description: 'Gerer les formations, les membres et les evaluations.'
+  route_name: aquarius_formations.admin_overview
+  parent: system.admin_content
+  weight: 20
+
+aquarius_formations.settings:
+  title: 'Aquarius Formations'
+  description: 'Configurer le module Aquarius Formations.'
+  route_name: aquarius_formations.settings
+  parent: system.admin_config_content
+  weight: 50
