@@ -3,6 +3,7 @@ type: module
 description: 'Gestion des formations de plongee.'
 package: Aquarius
 core_version_requirement: ^10 || ^11
+version: 0.001
 dependencies:
   - drupal:datetime
   - drupal:field
@@ -12,4 +13,3 @@ dependencies:
   - drupal:taxonomy
   - drupal:user
   - drupal:views
-  - views_field_view:views_field_view
