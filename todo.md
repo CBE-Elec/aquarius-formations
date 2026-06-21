@@ -85,9 +85,9 @@
   - [x] Type de groupe Formation
   - [x] Roles de membership
   - [x] Champs de groupe
-- [x] Generer la structure Evaluation
-  - [x] Bundle et champs
-  - [x] Formulaire de saisie par competence
+- [] Generer la structure Evaluation
+  - [] Bundle et champs
+  - [] Formulaire de saisie par competence
 - [ ] Implementer les services metier
   - [ ] Calcul progression
   - [ ] Controle des transitions de statut

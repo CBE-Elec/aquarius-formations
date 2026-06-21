@@ -227,14 +227,9 @@ function _aquarius_formations_configure_group_form_display(): void {
   ]);
 
   $display->setComponent('field_formation_saison', [
-    'type' => 'entity_reference_autocomplete',
+    'type' => 'options_select',
     'weight' => 11,
-    'settings' => [
-      'match_operator' => 'CONTAINS',
-      'match_limit' => 10,
-      'size' => 60,
-      'placeholder' => '',
-    ],
+    'settings' => [],
   ]);
 
   $display->setComponent('field_formation_date_debut', [
@@ -778,6 +773,15 @@ function aquarius_formations_update_10011(): string {
   _aquarius_formations_configure_group_form_display();
 
   return 'Champ Niveau prepare configure en liste deroulante.';
+}
+
+/**
+ * Passe le champ Saison en liste deroulante sur le formulaire.
+ */
+function aquarius_formations_update_10012(): string {
+  _aquarius_formations_configure_group_form_display();
+
+  return 'Champ Saison configure en liste deroulante.';
 }
 
 /**

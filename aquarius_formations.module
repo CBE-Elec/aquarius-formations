@@ -32,6 +32,14 @@ function aquarius_formations_form_alter(array &$form, FormStateInterface $form_s
     return;
   }
 
+  _aquarius_formations_filter_niveau_options($form);
+  _aquarius_formations_filter_saison_options($form);
+}
+
+/**
+ * Filtre les options du champ niveau prepare.
+ */
+function _aquarius_formations_filter_niveau_options(array &$form): void {
   if (!isset($form['field_formation_niveau']['widget']['#options']) || !is_array($form['field_formation_niveau']['widget']['#options'])) {
     return;
   }
@@ -63,6 +71,43 @@ function aquarius_formations_form_alter(array &$form, FormStateInterface $form_s
   }
 
   $form['field_formation_niveau']['widget']['#options'] = $options;
+}
+
+/**
+ * Filtre les options du champ saison (groupes saison actifs uniquement).
+ */
+function _aquarius_formations_filter_saison_options(array &$form): void {
+  if (!isset($form['field_formation_saison']['widget']['#options']) || !is_array($form['field_formation_saison']['widget']['#options'])) {
+    return;
+  }
+
+  $options = $form['field_formation_saison']['widget']['#options'];
+  $group_ids = [];
+  foreach (array_keys($options) as $key) {
+    if (is_numeric((string) $key)) {
+      $group_ids[] = (int) $key;
+    }
+  }
+
+  if ($group_ids === []) {
+    return;
+  }
+
+  /** @var \Drupal\group\Entity\GroupInterface[] $groups */
+  $groups = \Drupal::entityTypeManager()->getStorage('group')->loadMultiple($group_ids);
+
+  foreach ($options as $key => $label) {
+    if (!is_numeric((string) $key)) {
+      continue;
+    }
+
+    $gid = (int) $key;
+    if (!isset($groups[$gid]) || !_aquarius_formations_is_allowed_saison_group($groups[$gid])) {
+      unset($options[$key]);
+    }
+  }
+
+  $form['field_formation_saison']['widget']['#options'] = $options;
 }
 
 /**
@@ -98,4 +143,19 @@ function _aquarius_formations_is_allowed_niveau_term(TermInterface $term): bool 
   }
 
   return FALSE;
+}
+
+/**
+ * Verifie qu'un groupe est une saison active.
+ */
+function _aquarius_formations_is_allowed_saison_group(GroupInterface $group): bool {
+  if ($group->bundle() !== 'saison') {
+    return FALSE;
+  }
+
+  if (!$group->hasField('field_active') || $group->get('field_active')->isEmpty()) {
+    return FALSE;
+  }
+
+  return (string) $group->get('field_active')->value === '1';
 }
