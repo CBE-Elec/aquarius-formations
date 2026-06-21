@@ -849,6 +849,15 @@ function aquarius_formations_update_10013(): string {
 }
 
 /**
+ * Synchronise la vue Formation avec la liste embarquee des membres.
+ */
+function aquarius_formations_update_10014(): string {
+  _aquarius_formations_sync_views_config();
+
+  return 'Vue Formation synchronisee avec la liste des membres.';
+}
+
+/**
  * Synchronise les permissions des roles de groupe de la formation.
  */
 function _aquarius_formations_update_group_role_permissions(): void {
