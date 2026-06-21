@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^php -l aquarius_formations\\.install$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

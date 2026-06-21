@@ -90,9 +90,17 @@ function _aquarius_formations_create_synchronized_group_roles(): void {
   foreach ($user_roles as $user_role) {
     $role_id = $user_role->id();
 
-    $scopes = ['outsider'];
-    if ($role_id !== 'anonymous') {
-      $scopes[] = 'insider';
+    if ($role_id === 'anonymous') {
+      continue;
+    }
+
+    if (!$user_role->hasPermission('administer users')) {
+      continue;
+    }
+
+    $scopes = ['outsider', 'insider'];
+    if ($role_id === 'authenticated') {
+      $scopes = ['outsider'];
     }
 
     foreach ($scopes as $scope) {
@@ -113,6 +121,51 @@ function _aquarius_formations_create_synchronized_group_roles(): void {
         'permissions' => [],
       ]);
       $group_role->save();
+    }
+  }
+}
+
+/**
+ * Supprime les roles synchronises qui ne correspondent plus aux regles.
+ */
+function _aquarius_formations_cleanup_synchronized_group_roles(): void {
+  $group_role_storage = \Drupal::entityTypeManager()->getStorage('group_role');
+  $user_role_storage = \Drupal::entityTypeManager()->getStorage('user_role');
+
+  $ids = $group_role_storage->getQuery()
+    ->condition('group_type', 'formation')
+    ->condition('scope', ['insider', 'outsider'], 'IN')
+    ->exists('global_role')
+    ->accessCheck(FALSE)
+    ->execute();
+
+  if ($ids === []) {
+    return;
+  }
+
+  $roles = $group_role_storage->loadMultiple($ids);
+  foreach ($roles as $group_role) {
+    $global_role_id = (string) $group_role->get('global_role');
+    $scope = (string) $group_role->get('scope');
+
+    $delete = FALSE;
+    $user_role = $user_role_storage->load($global_role_id);
+
+    if (!$user_role) {
+      $delete = TRUE;
+    }
+    elseif ($global_role_id === 'anonymous') {
+      $delete = TRUE;
+    }
+    elseif (!$user_role->hasPermission('administer users')) {
+      $delete = TRUE;
+    }
+    elseif ($global_role_id === 'authenticated' && $scope === 'insider') {
+      $delete = TRUE;
+    }
+
+    if ($delete) {
+      $group_role->delete();
     }
   }
 }
@@ -517,6 +570,16 @@ function aquarius_formations_update_10003(): string {
   _aquarius_formations_create_synchronized_group_roles();
 
   return 'Roles synchronises insider et outsider appliques au type Formation.';
+}
+
+/**
+ * Restreint la synchronisation aux roles avec "Administrer les utilisateurs".
+ */
+function aquarius_formations_update_10004(): string {
+  _aquarius_formations_cleanup_synchronized_group_roles();
+  _aquarius_formations_create_synchronized_group_roles();
+
+  return 'Synchronisation des roles restreinte aux roles administrateurs utilisateurs.';
 }
 
 /**
