@@ -1,10 +1,14 @@
 name: Aquarius Formations
 type: module
-description: 'Gestion des formations de plongee avec Group.'
+description: 'Gestion des formations de plongee.'
 package: Aquarius
 core_version_requirement: ^10 || ^11
 dependencies:
+  - drupal:datetime
+  - drupal:field
   - group:group
   - drupal:node
+  - drupal:options
+  - drupal:taxonomy
   - drupal:user
   - drupal:views

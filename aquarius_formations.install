@@ -1,0 +1,440 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\node\Entity\NodeType;
+
+/**
+ * Cree toutes les structures a l'installation du module.
+ */
+function aquarius_formations_install(): void {
+  _aquarius_formations_create_group_type();
+  _aquarius_formations_create_group_roles();
+  _aquarius_formations_create_group_fields();
+  _aquarius_formations_create_evaluation_node_type();
+  _aquarius_formations_create_evaluation_fields();
+}
+
+/**
+ * Cree le type de groupe Formation.
+ */
+function _aquarius_formations_create_group_type(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('group_type');
+  if ($storage->load('formation')) {
+    return;
+  }
+
+  $group_type = $storage->create([
+    'id' => 'formation',
+    'label' => 'Formation',
+    'description' => 'Groupe dedie a une formation de plongee.',
+    'creator_membership' => FALSE,
+  ]);
+  $group_type->save();
+}
+
+/**
+ * Cree les roles de membership pour le type Formation.
+ */
+function _aquarius_formations_create_group_roles(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('group_role');
+
+  $roles = [
+    'formation-eleve' => [
+      'label' => 'Eleve',
+      'audience' => 'insider',
+      'weight' => 0,
+      'internal' => FALSE,
+    ],
+    'formation-responsable_formation' => [
+      'label' => 'Responsable de formation',
+      'audience' => 'insider',
+      'weight' => 1,
+      'internal' => FALSE,
+      'permissions' => [
+        'view group',
+        'update group',
+        'administer members',
+      ],
+    ],
+  ];
+
+  foreach ($roles as $id => $values) {
+    if ($storage->load($id)) {
+      continue;
+    }
+
+    $role = $storage->create($values + [
+      'id' => $id,
+      'group_type' => 'formation',
+    ]);
+    $role->save();
+  }
+}
+
+/**
+ * Cree les champs principaux du groupe Formation.
+ */
+function _aquarius_formations_create_group_fields(): void {
+  _aquarius_formations_create_niveau_field();
+  _aquarius_formations_create_saison_field();
+  _aquarius_formations_create_date_debut_field();
+  _aquarius_formations_create_etat_field();
+}
+
+/**
+ * Cree le champ niveau de plongee.
+ */
+function _aquarius_formations_create_niveau_field(): void {
+  if (!FieldStorageConfig::loadByName('group', 'field_formation_niveau')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_formation_niveau',
+      'entity_type' => 'group',
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'settings' => [
+        'target_type' => 'taxonomy_term',
+      ],
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('group', 'formation', 'field_formation_niveau')) {
+    FieldConfig::create([
+      'field_name' => 'field_formation_niveau',
+      'entity_type' => 'group',
+      'bundle' => 'formation',
+      'label' => 'Niveau prepare',
+      'required' => TRUE,
+      'settings' => [
+        'handler' => 'default:taxonomy_term',
+        'handler_settings' => [
+          'target_bundles' => [
+            'niveau_de_plongee' => 'niveau_de_plongee',
+          ],
+        ],
+      ],
+    ])->save();
+  }
+}
+
+/**
+ * Cree le champ saison.
+ */
+function _aquarius_formations_create_saison_field(): void {
+  if (!FieldStorageConfig::loadByName('group', 'field_formation_saison')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_formation_saison',
+      'entity_type' => 'group',
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'settings' => [
+        'target_type' => 'group',
+      ],
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('group', 'formation', 'field_formation_saison')) {
+    FieldConfig::create([
+      'field_name' => 'field_formation_saison',
+      'entity_type' => 'group',
+      'bundle' => 'formation',
+      'label' => 'Saison',
+      'required' => FALSE,
+      'settings' => [
+        'handler' => 'default:group',
+        'handler_settings' => [
+          'target_bundles' => [
+            'saison' => 'saison',
+          ],
+        ],
+      ],
+    ])->save();
+  }
+}
+
+/**
+ * Cree le champ date de debut.
+ */
+function _aquarius_formations_create_date_debut_field(): void {
+  if (!FieldStorageConfig::loadByName('group', 'field_formation_date_debut')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_formation_date_debut',
+      'entity_type' => 'group',
+      'type' => 'datetime',
+      'cardinality' => 1,
+      'settings' => [
+        'datetime_type' => 'date',
+      ],
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('group', 'formation', 'field_formation_date_debut')) {
+    FieldConfig::create([
+      'field_name' => 'field_formation_date_debut',
+      'entity_type' => 'group',
+      'bundle' => 'formation',
+      'label' => 'Date de debut',
+      'required' => FALSE,
+    ])->save();
+  }
+}
+
+/**
+ * Cree le champ etat de la formation.
+ */
+function _aquarius_formations_create_etat_field(): void {
+  if (!FieldStorageConfig::loadByName('group', 'field_formation_etat')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_formation_etat',
+      'entity_type' => 'group',
+      'type' => 'list_string',
+      'cardinality' => 1,
+      'settings' => [
+        'allowed_values' => [
+          'pas_ouverte' => 'Pas encore ouverte',
+          'inscriptions_ouvertes' => 'Inscriptions ouvertes',
+          'formation_en_cours' => 'Formation en cours',
+          'formation_terminee' => 'Formation terminee',
+        ],
+      ],
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('group', 'formation', 'field_formation_etat')) {
+    FieldConfig::create([
+      'field_name' => 'field_formation_etat',
+      'entity_type' => 'group',
+      'bundle' => 'formation',
+      'label' => 'Etat de la formation',
+      'required' => TRUE,
+      'default_value' => [
+        ['value' => 'pas_ouverte'],
+      ],
+    ])->save();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Structure Evaluation de formation (node type)
+// ---------------------------------------------------------------------------
+
+/**
+ * Cree le type de noeud evaluation_formation.
+ */
+function _aquarius_formations_create_evaluation_node_type(): void {
+  if (NodeType::load('evaluation_formation')) {
+    return;
+  }
+
+  NodeType::create([
+    'type' => 'evaluation_formation',
+    'name' => 'Evaluation de formation',
+    'description' => "Formulaire d'evaluation d'un eleve pour une formation.",
+    'new_revision' => FALSE,
+    'display_submitted' => FALSE,
+  ])->save();
+}
+
+/**
+ * Cree tous les champs du node type evaluation_formation.
+ */
+function _aquarius_formations_create_evaluation_fields(): void {
+  _aquarius_formations_create_eval_formation_field();
+  _aquarius_formations_create_eval_eleve_field();
+  _aquarius_formations_create_eval_encadrant_field();
+  _aquarius_formations_create_eval_date_field();
+  _aquarius_formations_create_eval_conditions_field();
+  _aquarius_formations_create_eval_sortie_field();
+  _aquarius_formations_create_eval_commentaire_field();
+}
+
+/**
+ * Champ : formation associee (groupe de type formation).
+ */
+function _aquarius_formations_create_eval_formation_field(): void {
+  if (!FieldStorageConfig::loadByName('node', 'field_eval_formation')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_eval_formation',
+      'entity_type' => 'node',
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'settings' => ['target_type' => 'group'],
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'evaluation_formation', 'field_eval_formation')) {
+    FieldConfig::create([
+      'field_name' => 'field_eval_formation',
+      'entity_type' => 'node',
+      'bundle' => 'evaluation_formation',
+      'label' => 'Formation',
+      'required' => TRUE,
+      'settings' => [
+        'handler' => 'default:group',
+        'handler_settings' => ['target_bundles' => ['formation' => 'formation']],
+      ],
+    ])->save();
+  }
+}
+
+/**
+ * Champ : eleve evalue (utilisateur membre de la formation).
+ */
+function _aquarius_formations_create_eval_eleve_field(): void {
+  if (!FieldStorageConfig::loadByName('node', 'field_eval_eleve')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_eval_eleve',
+      'entity_type' => 'node',
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'settings' => ['target_type' => 'user'],
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'evaluation_formation', 'field_eval_eleve')) {
+    FieldConfig::create([
+      'field_name' => 'field_eval_eleve',
+      'entity_type' => 'node',
+      'bundle' => 'evaluation_formation',
+      'label' => 'Eleve',
+      'required' => TRUE,
+    ])->save();
+  }
+}
+
+/**
+ * Champ : encadrant evaluateur.
+ */
+function _aquarius_formations_create_eval_encadrant_field(): void {
+  if (!FieldStorageConfig::loadByName('node', 'field_eval_encadrant')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_eval_encadrant',
+      'entity_type' => 'node',
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'settings' => ['target_type' => 'user'],
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'evaluation_formation', 'field_eval_encadrant')) {
+    FieldConfig::create([
+      'field_name' => 'field_eval_encadrant',
+      'entity_type' => 'node',
+      'bundle' => 'evaluation_formation',
+      'label' => 'Encadrant evaluateur',
+      'required' => TRUE,
+    ])->save();
+  }
+}
+
+/**
+ * Champ : date de l'evaluation.
+ */
+function _aquarius_formations_create_eval_date_field(): void {
+  if (!FieldStorageConfig::loadByName('node', 'field_eval_date')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_eval_date',
+      'entity_type' => 'node',
+      'type' => 'datetime',
+      'cardinality' => 1,
+      'settings' => ['datetime_type' => 'date'],
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'evaluation_formation', 'field_eval_date')) {
+    FieldConfig::create([
+      'field_name' => 'field_eval_date',
+      'entity_type' => 'node',
+      'bundle' => 'evaluation_formation',
+      'label' => "Date de l'evaluation",
+      'required' => TRUE,
+    ])->save();
+  }
+}
+
+/**
+ * Champ : conditions de pratique (piscine, fosse, lac, mer).
+ */
+function _aquarius_formations_create_eval_conditions_field(): void {
+  if (!FieldStorageConfig::loadByName('node', 'field_eval_conditions')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_eval_conditions',
+      'entity_type' => 'node',
+      'type' => 'list_string',
+      'cardinality' => 1,
+      'settings' => [
+        'allowed_values' => [
+          'piscine' => 'Piscine',
+          'fosse' => 'Fosse',
+          'lac' => 'Lac',
+          'mer' => 'Mer',
+        ],
+      ],
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'evaluation_formation', 'field_eval_conditions')) {
+    FieldConfig::create([
+      'field_name' => 'field_eval_conditions',
+      'entity_type' => 'node',
+      'bundle' => 'evaluation_formation',
+      'label' => 'Conditions de pratique',
+      'required' => FALSE,
+    ])->save();
+  }
+}
+
+/**
+ * Champ : sortie associee (groupe de type sortie).
+ */
+function _aquarius_formations_create_eval_sortie_field(): void {
+  if (!FieldStorageConfig::loadByName('node', 'field_eval_sortie')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_eval_sortie',
+      'entity_type' => 'node',
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'settings' => ['target_type' => 'group'],
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'evaluation_formation', 'field_eval_sortie')) {
+    FieldConfig::create([
+      'field_name' => 'field_eval_sortie',
+      'entity_type' => 'node',
+      'bundle' => 'evaluation_formation',
+      'label' => 'Sortie associee',
+      'required' => FALSE,
+      'settings' => [
+        'handler' => 'default:group',
+        'handler_settings' => ['target_bundles' => ['sortie' => 'sortie']],
+      ],
+    ])->save();
+  }
+}
+
+/**
+ * Champ : commentaire libre de l'encadrant.
+ */
+function _aquarius_formations_create_eval_commentaire_field(): void {
+  if (!FieldStorageConfig::loadByName('node', 'field_eval_commentaire')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_eval_commentaire',
+      'entity_type' => 'node',
+      'type' => 'text_long',
+      'cardinality' => 1,
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'evaluation_formation', 'field_eval_commentaire')) {
+    FieldConfig::create([
+      'field_name' => 'field_eval_commentaire',
+      'entity_type' => 'node',
+      'bundle' => 'evaluation_formation',
+      'label' => 'Commentaire',
+      'required' => FALSE,
+    ])->save();
+  }
+}

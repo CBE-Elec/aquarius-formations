@@ -13,3 +13,48 @@ aquarius_formations.settings:
     _form: '\\Drupal\\aquarius_formations\\Form\\AquariusFormationsSettingsForm'
   requirements:
     _permission: 'administer aquarius formations'
+
+# Liste des evaluations d'une formation.
+aquarius_formations.formation.evaluations:
+  path: '/formation/{group}/evaluations'
+  defaults:
+    _title: 'Evaluations de la formation'
+    _controller: '\\Drupal\\aquarius_formations\\Controller\\FormationsAdminController::evaluations'
+  requirements:
+    _permission: 'access aquarius formations overview'
+    group: \d+
+  options:
+    parameters:
+      group:
+        type: entity:group
+
+# Formulaire de creation d'une nouvelle evaluation.
+aquarius_formations.evaluation.ajouter:
+  path: '/formation/{group}/evaluation/ajouter'
+  defaults:
+    _title: 'Nouvelle evaluation'
+    _form: '\\Drupal\\aquarius_formations\\Form\\EvaluationForm'
+  requirements:
+    _permission: 'create aquarius evaluations'
+    group: \d+
+  options:
+    parameters:
+      group:
+        type: entity:group
+
+# Formulaire de modification d'une evaluation existante.
+aquarius_formations.evaluation.modifier:
+  path: '/formation/{group}/evaluation/{node}/modifier'
+  defaults:
+    _title: "Modifier l'evaluation"
+    _form: '\\Drupal\\aquarius_formations\\Form\\EvaluationEditForm'
+  requirements:
+    _permission: 'edit own aquarius evaluations'
+    group: \d+
+    node: \d+
+  options:
+    parameters:
+      group:
+        type: entity:group
+      node:
+        type: entity:node
