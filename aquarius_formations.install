@@ -12,6 +12,7 @@ use Drupal\node\Entity\NodeType;
 function aquarius_formations_install(): void {
   _aquarius_formations_create_group_type();
   _aquarius_formations_create_group_roles();
+  _aquarius_formations_create_synchronized_group_roles();
   _aquarius_formations_create_group_fields();
   _aquarius_formations_create_evaluation_node_type();
   _aquarius_formations_create_evaluation_fields();
@@ -77,6 +78,42 @@ function _aquarius_formations_create_group_roles(): void {
 }
 
 /**
+ * Cree des roles de groupe synchronises avec les roles du site.
+ */
+function _aquarius_formations_create_synchronized_group_roles(): void {
+  $group_role_storage = \Drupal::entityTypeManager()->getStorage('group_role');
+  $user_role_storage = \Drupal::entityTypeManager()->getStorage('user_role');
+
+  /** @var \Drupal\user\RoleInterface[] $user_roles */
+  $user_roles = $user_role_storage->loadMultiple();
+
+  foreach ($user_roles as $user_role) {
+    $role_id = $user_role->id();
+
+    if ($role_id === 'anonymous') {
+      continue;
+    }
+
+    $group_role_id = 'formation-insider-' . $role_id;
+    if ($group_role_storage->load($group_role_id)) {
+      continue;
+    }
+
+    $group_role = $group_role_storage->create([
+      'id' => $group_role_id,
+      'label' => $user_role->label(),
+      'group_type' => 'formation',
+      'scope' => 'insider',
+      'global_role' => $role_id,
+      'weight' => 10,
+      'admin' => FALSE,
+      'permissions' => [],
+    ]);
+    $group_role->save();
+  }
+}
+
+/**
  * Cree les champs principaux du groupe Formation.
  */
 function _aquarius_formations_create_group_fields(): void {
@@ -113,7 +150,8 @@ function _aquarius_formations_create_niveau_field(): void {
         'handler' => 'default:taxonomy_term',
         'handler_settings' => [
           'target_bundles' => [
-            'niveau_de_plongee' => 'niveau_de_plongee',
+            'niveau_plongee' => 'niveau_plongee',
+            'qualifications' => 'qualifications',
           ],
         ],
       ],
@@ -438,5 +476,86 @@ function _aquarius_formations_create_eval_commentaire_field(): void {
       'label' => 'Commentaire',
       'required' => FALSE,
     ])->save();
+  }
+}
+
+/**
+ * Applique les creations et correctifs de structure lors d'une mise a jour.
+ */
+function aquarius_formations_update_10001(): string {
+  _aquarius_formations_create_group_type();
+  _aquarius_formations_create_group_roles();
+  _aquarius_formations_create_synchronized_group_roles();
+  _aquarius_formations_create_group_fields();
+  _aquarius_formations_create_evaluation_node_type();
+  _aquarius_formations_create_evaluation_fields();
+
+  _aquarius_formations_update_group_role_permissions();
+  _aquarius_formations_update_niveau_target_bundles();
+  _aquarius_formations_update_eval_conditions_cardinality();
+
+  return 'Structure Aquarius Formations mise a jour.';
+}
+
+/**
+ * Cree les roles de groupe synchronises avec les roles du site existants.
+ */
+function aquarius_formations_update_10002(): string {
+  _aquarius_formations_create_synchronized_group_roles();
+
+  return 'Roles du site propages automatiquement au type de groupe Formation.';
+}
+
+/**
+ * Synchronise les permissions des roles de groupe de la formation.
+ */
+function _aquarius_formations_update_group_role_permissions(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('group_role');
+
+  $responsable = $storage->load('formation-responsable_formation');
+  if ($responsable) {
+    $permissions = $responsable->get('permissions') ?? [];
+    foreach (['view group', 'update group', 'administer members'] as $permission) {
+      if (!in_array($permission, $permissions, TRUE)) {
+        $permissions[] = $permission;
+      }
+    }
+    $responsable->set('permissions', $permissions);
+    $responsable->save();
+  }
+}
+
+/**
+ * Met a jour les vocabulaires autorises pour le champ niveau de formation.
+ */
+function _aquarius_formations_update_niveau_target_bundles(): void {
+  $field = FieldConfig::loadByName('group', 'formation', 'field_formation_niveau');
+  if (!$field) {
+    return;
+  }
+
+  $settings = $field->getSettings();
+  $settings['handler'] = 'default:taxonomy_term';
+  $settings['handler_settings']['target_bundles'] = [
+    'niveau_plongee' => 'niveau_plongee',
+    'qualifications' => 'qualifications',
+  ];
+
+  $field->set('settings', $settings);
+  $field->save();
+}
+
+/**
+ * Force la cardinalite du champ conditions d'evaluation a une seule valeur.
+ */
+function _aquarius_formations_update_eval_conditions_cardinality(): void {
+  $storage = FieldStorageConfig::loadByName('node', 'field_eval_conditions');
+  if (!$storage) {
+    return;
+  }
+
+  if ((int) $storage->getCardinality() !== 1) {
+    $storage->setCardinality(1);
+    $storage->save();
   }
 }
