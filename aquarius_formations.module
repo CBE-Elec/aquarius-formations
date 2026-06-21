@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\group\Entity\GroupInterface;
+use Drupal\taxonomy\TermInterface;
 
 /**
  * Implements hook_help().
@@ -13,4 +16,86 @@ function aquarius_formations_help(string $route_name, RouteMatchInterface $route
   }
 
   return NULL;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function aquarius_formations_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $form_object = $form_state->getFormObject();
+  if (!$form_object || !method_exists($form_object, 'getEntity')) {
+    return;
+  }
+
+  $entity = $form_object->getEntity();
+  if (!$entity instanceof GroupInterface || $entity->bundle() !== 'formation') {
+    return;
+  }
+
+  if (!isset($form['field_formation_niveau']['widget']['#options']) || !is_array($form['field_formation_niveau']['widget']['#options'])) {
+    return;
+  }
+
+  $options = $form['field_formation_niveau']['widget']['#options'];
+  $term_ids = [];
+  foreach (array_keys($options) as $key) {
+    if (is_numeric((string) $key)) {
+      $term_ids[] = (int) $key;
+    }
+  }
+
+  if ($term_ids === []) {
+    return;
+  }
+
+  /** @var \Drupal\taxonomy\TermInterface[] $terms */
+  $terms = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadMultiple($term_ids);
+
+  foreach ($options as $key => $label) {
+    if (!is_numeric((string) $key)) {
+      continue;
+    }
+
+    $tid = (int) $key;
+    if (!isset($terms[$tid]) || !_aquarius_formations_is_allowed_niveau_term($terms[$tid])) {
+      unset($options[$key]);
+    }
+  }
+
+  $form['field_formation_niveau']['widget']['#options'] = $options;
+}
+
+/**
+ * Verifie qu'un terme est autorise pour le champ Niveau prepare.
+ */
+function _aquarius_formations_is_allowed_niveau_term(TermInterface $term): bool {
+  $bundle = $term->bundle();
+  if ($bundle === 'qualifications') {
+    return TRUE;
+  }
+
+  if ($bundle !== 'niveau_plongee') {
+    return FALSE;
+  }
+
+  // Si le champ organisme n'existe pas, on garde le comportement permissif.
+  if (!$term->hasField('field_organisme') || $term->get('field_organisme')->isEmpty()) {
+    return TRUE;
+  }
+
+  // Cas 1: champ texte simple.
+  foreach ($term->get('field_organisme')->getValue() as $item) {
+    if (!empty($item['value']) && mb_strtoupper(trim((string) $item['value'])) === 'FFESSM') {
+      return TRUE;
+    }
+  }
+
+  // Cas 2: champ reference vers entite (taxonomy, etc.).
+  foreach ($term->get('field_organisme')->referencedEntities() as $referenced) {
+    if (mb_strtoupper(trim($referenced->label())) === 'FFESSM') {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
 }

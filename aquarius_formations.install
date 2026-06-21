@@ -221,14 +221,9 @@ function _aquarius_formations_configure_group_form_display(): void {
   }
 
   $display->setComponent('field_formation_niveau', [
-    'type' => 'entity_reference_autocomplete',
+    'type' => 'options_select',
     'weight' => 10,
-    'settings' => [
-      'match_operator' => 'CONTAINS',
-      'match_limit' => 10,
-      'size' => 60,
-      'placeholder' => '',
-    ],
+    'settings' => [],
   ]);
 
   $display->setComponent('field_formation_saison', [
@@ -774,6 +769,15 @@ function aquarius_formations_update_10010(): string {
   _aquarius_formations_sync_views_config();
 
   return 'Vues Formation synchronisees (installation/update).';
+}
+
+/**
+ * Passe le champ Niveau prepare en liste deroulante sur le formulaire.
+ */
+function aquarius_formations_update_10011(): string {
+  _aquarius_formations_configure_group_form_display();
+
+  return 'Champ Niveau prepare configure en liste deroulante.';
 }
 
 /**
