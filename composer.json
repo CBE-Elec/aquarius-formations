@@ -6,6 +6,6 @@
   "minimum-stability": "stable",
   "require": {
     "drupal/core": "^10 || ^11",
-    "drupal/group": "^3.3"
+    "drupal/group": "^2.3"
   }
 }
