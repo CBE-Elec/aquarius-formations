@@ -269,7 +269,7 @@ display:
           element_wrapper_class: ''
           element_default_classes: true
           empty: ''
-          hide_empty: true
+          hide_empty: false
           empty_zero: false
           hide_alter_empty: true
           click_sort_column: target_id
@@ -331,7 +331,7 @@ display:
           element_wrapper_class: ''
           element_default_classes: true
           empty: ''
-          hide_empty: true
+          hide_empty: false
           empty_zero: false
           hide_alter_empty: true
           click_sort_column: value
@@ -659,7 +659,7 @@ display:
           replica: false
           query_tags: {  }
       relationships: {  }
-      css_class: view-formation
+      css_class: 'view-sortie view-formation'
       header: {  }
       footer: {  }
       display_extenders: {  }
@@ -669,9 +669,26 @@ display:
     display_plugin: page
     position: 1
     display_options:
+      style:
+        type: default
+        options:
+          grouping: {  }
+          row_class: ''
+          default_row_class: false
+      row:
+        type: fields
+        options:
+          default_field_elements: true
+          inline:
+            id: id
+            field_formation_niveau: field_formation_niveau
+            field_formation_etat: field_formation_etat
+            field_formation_date_debut: field_formation_date_debut
+          separator: ' '
+          hide_empty: false
       defaults:
-        style: true
-        row: true
+        style: false
+        row: false
         relationships: true
         fields: true
         arguments: true
