@@ -10,6 +10,7 @@ dependencies:
     - group.type.formation
     - user.role.authenticated
     - views.view.formation_membres
+    - views.view.saison_adhesion
   module:
     - datetime
     - group
@@ -458,6 +459,214 @@ display:
           hide_empty: false
           empty_zero: false
           hide_alter_empty: true
+        view_responsable_formation:
+          id: view_responsable_formation
+          table: views
+          field: view
+          relationship: none
+          group_type: group
+          admin_label: 'Utilisateur courant est responsable ?'
+          plugin_id: view
+          label: ''
+          exclude: true
+          alter:
+            alter_text: false
+            text: ''
+            make_link: false
+            path: ''
+            absolute: false
+            external: false
+            replace_spaces: false
+            path_case: none
+            trim_whitespace: false
+            alt: ''
+            rel: ''
+            link_class: ''
+            prefix: ''
+            suffix: ''
+            target: ''
+            nl2br: false
+            max_length: 0
+            word_boundary: true
+            ellipsis: true
+            more_link: false
+            more_link_text: ''
+            more_link_path: ''
+            strip_tags: false
+            trim: false
+            preserve_tags: ''
+            html: false
+          element_type: '0'
+          element_class: ''
+          element_label_type: '0'
+          element_label_class: ''
+          element_label_colon: false
+          element_wrapper_type: '0'
+          element_wrapper_class: ''
+          element_default_classes: false
+          empty: ''
+          hide_empty: false
+          empty_zero: false
+          hide_alter_empty: false
+          view: formation_membres
+          display: embed_responsable
+          arguments: '{{ raw_fields.id }}'
+        view_membre_formation:
+          id: view_membre_formation
+          table: views
+          field: view
+          relationship: none
+          group_type: group
+          admin_label: 'Utilisateur courant est membre ?'
+          plugin_id: view
+          label: ''
+          exclude: true
+          alter:
+            alter_text: false
+            text: ''
+            make_link: false
+            path: ''
+            absolute: false
+            external: false
+            replace_spaces: false
+            path_case: none
+            trim_whitespace: false
+            alt: ''
+            rel: ''
+            link_class: ''
+            prefix: ''
+            suffix: ''
+            target: ''
+            nl2br: false
+            max_length: 0
+            word_boundary: true
+            ellipsis: true
+            more_link: false
+            more_link_text: ''
+            more_link_path: ''
+            strip_tags: false
+            trim: false
+            preserve_tags: ''
+            html: false
+          element_type: '0'
+          element_class: ''
+          element_label_type: '0'
+          element_label_class: ''
+          element_label_colon: false
+          element_wrapper_type: '0'
+          element_wrapper_class: ''
+          element_default_classes: false
+          empty: ''
+          hide_empty: false
+          empty_zero: false
+          hide_alter_empty: false
+          view: formation_membres
+          display: embed_membre
+          arguments: '{{ raw_fields.id }}'
+        view_saison_active:
+          id: view_saison_active
+          table: views
+          field: view
+          relationship: none
+          group_type: group
+          admin_label: 'Utilisateur courant inscrit a la saison ?'
+          plugin_id: view
+          label: ''
+          exclude: true
+          alter:
+            alter_text: false
+            text: ''
+            make_link: false
+            path: ''
+            absolute: false
+            external: false
+            replace_spaces: false
+            path_case: none
+            trim_whitespace: false
+            alt: ''
+            rel: ''
+            link_class: ''
+            prefix: ''
+            suffix: ''
+            target: ''
+            nl2br: false
+            max_length: 0
+            word_boundary: true
+            ellipsis: true
+            more_link: false
+            more_link_text: ''
+            more_link_path: ''
+            strip_tags: false
+            trim: false
+            preserve_tags: ''
+            html: false
+          element_type: '0'
+          element_class: ''
+          element_label_type: '0'
+          element_label_class: ''
+          element_label_colon: false
+          element_wrapper_type: '0'
+          element_wrapper_class: ''
+          element_default_classes: false
+          empty: ''
+          hide_empty: false
+          empty_zero: false
+          hide_alter_empty: false
+          view: saison_adhesion
+          display: embed_2
+          arguments: '{{ fields.field_formation_saison }}'
+        view_eleves_email:
+          id: view_eleves_email
+          table: views
+          field: view
+          relationship: none
+          group_type: group
+          admin_label: 'Liste email des eleves'
+          plugin_id: view
+          label: ''
+          exclude: true
+          alter:
+            alter_text: false
+            text: ''
+            make_link: false
+            path: ''
+            absolute: false
+            external: false
+            replace_spaces: false
+            path_case: none
+            trim_whitespace: false
+            alt: ''
+            rel: ''
+            link_class: ''
+            prefix: ''
+            suffix: ''
+            target: ''
+            nl2br: false
+            max_length: 0
+            word_boundary: true
+            ellipsis: true
+            more_link: false
+            more_link_text: ''
+            more_link_path: ''
+            strip_tags: false
+            trim: false
+            preserve_tags: ''
+            html: false
+          element_type: '0'
+          element_class: ''
+          element_label_type: '0'
+          element_label_class: ''
+          element_label_colon: false
+          element_wrapper_type: '0'
+          element_wrapper_class: ''
+          element_default_classes: false
+          empty: ''
+          hide_empty: false
+          empty_zero: false
+          hide_alter_empty: false
+          view: formation_membres
+          display: email_eleves
+          arguments: '{{ raw_fields.id }}'
         view_formation_membres:
           id: view_formation_membres
           table: views
@@ -661,7 +870,29 @@ display:
       relationships: {  }
       css_class: 'view-sortie view-formation'
       header: {  }
-      footer: {  }
+      footer:
+        area_text_custom_1:
+          id: area_text_custom_1
+          table: views
+          field: area_text_custom
+          relationship: none
+          group_type: group
+          admin_label: 'Lien inscription'
+          plugin_id: text_custom
+          empty: false
+          content: "{% if view_membre_formation|striptags|trim != \"Membre\" and field_formation_etat|striptags|trim == \"Inscriptions ouvertes\" %}\r\n{% if view_saison_active|striptags|trim == \"Oui\" %}\r\n<a href=\"/group/{{ id|striptags|trim }}/join\" class=\"button\">S'inscrire</a>\r\n{% else %}\r\n<span class=\"tag_error\">Inscription impossible, non membre pour la saison de cette formation.</span>\r\n{% endif %}\r\n{% endif %}\r\n{% if view_responsable_formation|striptags|trim == \"Responsable\" %}\r\n<a href=\"/group/{{ id|striptags|trim }}/content/add\" class=\"button\">Ajouter participant</a>\r\n{% endif %}"
+          tokenize: true
+        area_text_custom:
+          id: area_text_custom
+          table: views
+          field: area_text_custom
+          relationship: none
+          group_type: group
+          admin_label: 'Boutons responsable formation'
+          plugin_id: text_custom
+          empty: false
+          content: "{% if view_responsable_formation|striptags|trim == \"Responsable\" %}\r\n<a class=\"button\" href=\"mailto:{{ view_eleves_email|striptags|trim }}\">Ecrire aux eleves</a>\r\n<a class=\"button\" href=\"/formation/{{ id|striptags|trim }}/membres\" target=\"_blank\">Liste des membres</a>\r\n{% endif %}\r\n"
+          tokenize: true
       display_extenders: {  }
   page_formation:
     id: page_formation

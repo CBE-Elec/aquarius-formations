@@ -707,8 +707,8 @@ function _aquarius_formations_sync_views_config(): void {
 
   $config_names = [
     'views.view.niveaux_ffessm',
-    'views.view.formation',
     'views.view.formation_membres',
+    'views.view.formation',
   ];
 
   foreach ($config_names as $config_name) {
