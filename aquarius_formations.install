@@ -26,7 +26,7 @@ function aquarius_formations_install(): void {
   _aquarius_formations_create_evaluation_node_type();
   _aquarius_formations_create_evaluation_fields();
 
-  // Les vues dependent de champs/groupes crees ci-dessus: on les (re)importe ici.
+  // Les vues dependent de champs/groupes crees ci-dessus: on les importe ici.
   _aquarius_formations_sync_views_config();
 }
 
@@ -699,11 +699,11 @@ function _aquarius_formations_ensure_date_debut_date_only(): void {
 }
 
 /**
- * Synchronise les vues du module a partir des YAML dans config/install.
+ * Cree les vues du module a partir des YAML dans config/optional.
  */
 function _aquarius_formations_sync_views_config(): void {
   $module_path = \Drupal::service('extension.list.module')->getPath('aquarius_formations');
-  $default_config = new FileStorage(DRUPAL_ROOT . '/' . $module_path . '/config/install');
+  $default_config = new FileStorage(DRUPAL_ROOT . '/' . $module_path . '/config/optional');
 
   $config_names = [
     'views.view.niveaux_ffessm',
@@ -718,15 +718,8 @@ function _aquarius_formations_sync_views_config(): void {
     }
 
     $active = \Drupal::configFactory()->getEditable($config_name);
-    $existing = $active->getRawData();
-
-    if ($config_name === 'views.view.niveaux_ffessm' && !$active->isNew()) {
+    if (!$active->isNew()) {
       continue;
-    }
-
-    // Conserve l'UUID existant pour eviter toute rupture de references.
-    if (!empty($existing['uuid'])) {
-      $data['uuid'] = $existing['uuid'];
     }
 
     $active->setData($data)->save();
@@ -734,7 +727,7 @@ function _aquarius_formations_sync_views_config(): void {
 }
 
 /**
- * Cree la vue niveaux_ffessm depuis config/install si elle est absente.
+ * Cree la vue niveaux_ffessm depuis config/optional si elle est absente.
  */
 function _aquarius_formations_ensure_niveaux_ffessm_view(): void {
   $active = \Drupal::configFactory()->getEditable('views.view.niveaux_ffessm');
@@ -743,7 +736,7 @@ function _aquarius_formations_ensure_niveaux_ffessm_view(): void {
   }
 
   $module_path = \Drupal::service('extension.list.module')->getPath('aquarius_formations');
-  $default_config = new FileStorage(DRUPAL_ROOT . '/' . $module_path . '/config/install');
+  $default_config = new FileStorage(DRUPAL_ROOT . '/' . $module_path . '/config/optional');
   $data = $default_config->read('views.view.niveaux_ffessm');
   if (!is_array($data) || $data === []) {
     return;
