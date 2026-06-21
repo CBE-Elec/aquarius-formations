@@ -44,12 +44,14 @@ function _aquarius_formations_create_group_roles(): void {
   $roles = [
     'formation-eleve' => [
       'label' => 'Eleve',
+      'scope' => 'individual',
       'audience' => 'insider',
       'weight' => 0,
       'internal' => FALSE,
     ],
     'formation-responsable_formation' => [
       'label' => 'Responsable de formation',
+      'scope' => 'individual',
       'audience' => 'insider',
       'weight' => 1,
       'internal' => FALSE,
