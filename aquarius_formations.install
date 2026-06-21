@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
+use Drupal\Core\Config\FileStorage;
 use Drupal\node\Entity\NodeType;
 
 /**
@@ -14,8 +17,13 @@ function aquarius_formations_install(): void {
   _aquarius_formations_create_group_roles();
   _aquarius_formations_create_synchronized_group_roles();
   _aquarius_formations_create_group_fields();
+  _aquarius_formations_configure_group_form_display();
+  _aquarius_formations_configure_group_view_display();
   _aquarius_formations_create_evaluation_node_type();
   _aquarius_formations_create_evaluation_fields();
+
+  // Les vues dependent de champs/groupes crees ci-dessus: on les (re)importe ici.
+  _aquarius_formations_sync_views_config();
 }
 
 /**
@@ -31,9 +39,25 @@ function _aquarius_formations_create_group_type(): void {
     'id' => 'formation',
     'label' => 'Formation',
     'description' => 'Groupe dédié à une formation de plongeurs.',
+    'new_revision' => FALSE,
     'creator_membership' => FALSE,
   ]);
   $group_type->save();
+}
+
+/**
+ * Desactive la gestion des versions pour le type de groupe Formation.
+ */
+function _aquarius_formations_disable_group_revisions(): void {
+  $group_type = \Drupal::entityTypeManager()->getStorage('group_type')->load('formation');
+  if (!$group_type) {
+    return;
+  }
+
+  if ($group_type->shouldCreateNewRevision()) {
+    $group_type->setNewRevision(FALSE);
+    $group_type->save();
+  }
 }
 
 /**
@@ -178,6 +202,119 @@ function _aquarius_formations_create_group_fields(): void {
   _aquarius_formations_create_saison_field();
   _aquarius_formations_create_date_debut_field();
   _aquarius_formations_create_etat_field();
+}
+
+/**
+ * Configure l'affichage du formulaire de creation/edition de la formation.
+ */
+function _aquarius_formations_configure_group_form_display(): void {
+  $display = EntityFormDisplay::load('group.formation.default');
+
+  if (!$display) {
+    $display = EntityFormDisplay::create([
+      'targetEntityType' => 'group',
+      'bundle' => 'formation',
+      'mode' => 'default',
+      'status' => TRUE,
+      'id' => 'group.formation.default',
+    ]);
+  }
+
+  $display->setComponent('field_formation_niveau', [
+    'type' => 'entity_reference_autocomplete',
+    'weight' => 10,
+    'settings' => [
+      'match_operator' => 'CONTAINS',
+      'match_limit' => 10,
+      'size' => 60,
+      'placeholder' => '',
+    ],
+  ]);
+
+  $display->setComponent('field_formation_saison', [
+    'type' => 'entity_reference_autocomplete',
+    'weight' => 11,
+    'settings' => [
+      'match_operator' => 'CONTAINS',
+      'match_limit' => 10,
+      'size' => 60,
+      'placeholder' => '',
+    ],
+  ]);
+
+  $display->setComponent('field_formation_date_debut', [
+    'type' => 'datetime_default',
+    'weight' => 12,
+    'settings' => [],
+  ]);
+
+  $display->setComponent('field_formation_etat', [
+    'type' => 'options_select',
+    'weight' => 13,
+    'settings' => [],
+  ]);
+
+  // Masque explicitement le champ Language sur le formulaire.
+  $display->removeComponent('langcode');
+
+  $display->save();
+}
+
+/**
+ * Configure l'affichage du groupe formation.
+ */
+function _aquarius_formations_configure_group_view_display(): void {
+  $display = EntityViewDisplay::load('group.formation.default');
+
+  if (!$display) {
+    $display = EntityViewDisplay::create([
+      'targetEntityType' => 'group',
+      'bundle' => 'formation',
+      'mode' => 'default',
+      'status' => TRUE,
+      'id' => 'group.formation.default',
+    ]);
+  }
+
+  $display->setComponent('field_formation_niveau', [
+    'type' => 'entity_reference_label',
+    'label' => 'above',
+    'weight' => 10,
+    'settings' => [
+      'link' => FALSE,
+    ],
+  ]);
+
+  $display->setComponent('field_formation_saison', [
+    'type' => 'entity_reference_label',
+    'label' => 'above',
+    'weight' => 11,
+    'settings' => [
+      'link' => FALSE,
+    ],
+  ]);
+
+  $display->setComponent('field_formation_date_debut', [
+    'type' => 'datetime_default',
+    'label' => 'above',
+    'weight' => 12,
+    'settings' => [
+      'timezone_override' => '',
+      'format_type' => 'medium',
+    ],
+  ]);
+
+  $display->setComponent('field_formation_etat', [
+    'type' => 'list_default',
+    'label' => 'above',
+    'weight' => 13,
+    'settings' => [],
+  ]);
+
+  // Masque explicitement le champ Language sur l'affichage.
+  $display->removeComponent('langcode');
+
+  $display->save();
 }
 
 /**
@@ -541,9 +678,12 @@ function _aquarius_formations_create_eval_commentaire_field(): void {
  */
 function aquarius_formations_update_10001(): string {
   _aquarius_formations_create_group_type();
+  _aquarius_formations_disable_group_revisions();
   _aquarius_formations_create_group_roles();
   _aquarius_formations_create_synchronized_group_roles();
   _aquarius_formations_create_group_fields();
+  _aquarius_formations_configure_group_form_display();
+  _aquarius_formations_configure_group_view_display();
   _aquarius_formations_create_evaluation_node_type();
   _aquarius_formations_create_evaluation_fields();
 
@@ -580,6 +720,60 @@ function aquarius_formations_update_10004(): string {
   _aquarius_formations_create_synchronized_group_roles();
 
   return 'Synchronisation des roles restreinte aux roles administrateurs utilisateurs.';
+}
+
+/**
+ * Desactive la gestion des versions pour le type de groupe Formation.
+ */
+function aquarius_formations_update_10005(): string {
+  _aquarius_formations_disable_group_revisions();
+
+  return 'Gestion des versions des groupes Formation desactivee.';
+}
+
+/**
+ * Rend visibles les champs Formation sur le formulaire de creation du groupe.
+ */
+function aquarius_formations_update_10006(): string {
+  _aquarius_formations_configure_group_form_display();
+
+  return 'Champs Formation visibles sur le formulaire de creation/edition.';
+}
+
+/**
+ * Desactive le champ Language sur le formulaire de creation de formation.
+ */
+function aquarius_formations_update_10007(): string {
+  _aquarius_formations_configure_group_form_display();
+
+  return 'Champ Language desactive sur le formulaire de formation.';
+}
+
+/**
+ * Desactive le champ Language sur l'affichage des formations.
+ */
+function aquarius_formations_update_10008(): string {
+  _aquarius_formations_configure_group_view_display();
+
+  return 'Champ Language desactive sur l\'affichage des formations.';
+}
+
+/**
+ * Rend visibles les champs Formation sur l'affichage du groupe.
+ */
+function aquarius_formations_update_10009(): string {
+  _aquarius_formations_configure_group_view_display();
+
+  return 'Champs Formation visibles sur l\'affichage des groupes.';
+}
+
+/**
+ * Cree ou met a jour les vues du module depuis config/install.
+ */
+function aquarius_formations_update_10010(): string {
+  _aquarius_formations_sync_views_config();
+
+  return 'Vues Formation synchronisees (installation/update).';
 }
 
 /**
@@ -633,5 +827,35 @@ function _aquarius_formations_update_eval_conditions_cardinality(): void {
   if ((int) $storage->getCardinality() !== 1) {
     $storage->setCardinality(1);
     $storage->save();
+  }
+}
+
+/**
+ * Synchronise les vues du module a partir des YAML dans config/install.
+ */
+function _aquarius_formations_sync_views_config(): void {
+  $module_path = \Drupal::service('extension.list.module')->getPath('aquarius_formations');
+  $default_config = new FileStorage(DRUPAL_ROOT . '/' . $module_path . '/config/install');
+
+  $config_names = [
+    'views.view.formation',
+    'views.view.formation_membres',
+  ];
+
+  foreach ($config_names as $config_name) {
+    $data = $default_config->read($config_name);
+    if (!is_array($data) || $data === []) {
+      continue;
+    }
+
+    $active = \Drupal::configFactory()->getEditable($config_name);
+    $existing = $active->getRawData();
+
+    // Conserve l'UUID existant pour eviter toute rupture de references.
+    if (!empty($existing['uuid'])) {
+      $data['uuid'] = $existing['uuid'];
+    }
+
+    $active->setData($data)->save();
   }
 }
