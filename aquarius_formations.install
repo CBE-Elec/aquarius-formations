@@ -118,7 +118,7 @@ function _aquarius_formations_create_synchronized_group_roles(): void {
       continue;
     }
 
-    if (!$user_role->hasPermission('administer users')) {
+    if (!_aquarius_formations_should_sync_user_role($user_role)) {
       continue;
     }
 
@@ -129,7 +129,12 @@ function _aquarius_formations_create_synchronized_group_roles(): void {
 
     foreach ($scopes as $scope) {
       $group_role_id = 'formation-' . $scope . '-' . $role_id;
-      if ($group_role_storage->load($group_role_id)) {
+      $permissions = _aquarius_formations_get_synchronized_group_role_permissions($user_role);
+
+      $existing_group_role = $group_role_storage->load($group_role_id);
+      if ($existing_group_role) {
+        $existing_group_role->set('permissions', $permissions);
+        $existing_group_role->save();
         continue;
       }
 
@@ -142,11 +147,61 @@ function _aquarius_formations_create_synchronized_group_roles(): void {
         'global_role' => $role_id,
         'weight' => 10,
         'admin' => FALSE,
-        'permissions' => [],
+        'permissions' => $permissions,
       ]);
       $group_role->save();
     }
   }
+}
+
+/**
+ * Calcule les permissions de groupe a partir d'un role global synchronise.
+ */
+function _aquarius_formations_get_synchronized_group_role_permissions($user_role): array {
+  $permissions = [];
+
+  if ($user_role->hasPermission('access content')) {
+    $permissions[] = 'view group';
+  }
+
+  if ($user_role->hasPermission('administer users')) {
+    $permissions[] = 'view group';
+    $permissions[] = 'update group';
+    $permissions[] = 'administer members';
+  }
+
+  if ($user_role->hasPermission('administer permissions')) {
+    $permissions[] = 'view group';
+    $permissions[] = 'update group';
+    $permissions[] = 'administer members';
+  }
+
+  if ($user_role->hasPermission('administer group')) {
+    $permissions[] = 'view group';
+    $permissions[] = 'update group';
+    $permissions[] = 'administer members';
+  }
+
+  if ($user_role->hasPermission('administer group types')) {
+    $permissions[] = 'view group';
+    $permissions[] = 'update group';
+    $permissions[] = 'administer members';
+  }
+
+  return array_values(array_unique($permissions));
+}
+
+/**
+ * Indique si un role global doit etre synchronise en role de groupe Formation.
+ */
+function _aquarius_formations_should_sync_user_role($user_role): bool {
+  foreach (['administer users', 'administer permissions', 'administer group', 'administer group types'] as $permission) {
+    if ($user_role->hasPermission($permission)) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
 }
 
 /**
@@ -181,7 +236,7 @@ function _aquarius_formations_cleanup_synchronized_group_roles(): void {
     elseif ($global_role_id === 'anonymous') {
       $delete = TRUE;
     }
-    elseif (!$user_role->hasPermission('administer users')) {
+    elseif (!_aquarius_formations_should_sync_user_role($user_role)) {
       $delete = TRUE;
     }
     elseif ($global_role_id === 'authenticated' && $scope === 'insider') {
@@ -782,6 +837,15 @@ function aquarius_formations_update_10012(): string {
   _aquarius_formations_configure_group_form_display();
 
   return 'Champ Saison configure en liste deroulante.';
+}
+
+/**
+ * Synchronise les permissions des roles de groupe lies aux roles du site.
+ */
+function aquarius_formations_update_10013(): string {
+  _aquarius_formations_create_synchronized_group_roles();
+
+  return 'Permissions des roles synchronises Formation mises a jour.';
 }
 
 /**
