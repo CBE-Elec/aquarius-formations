@@ -30,7 +30,7 @@ function _aquarius_formations_create_group_type(): void {
   $group_type = $storage->create([
     'id' => 'formation',
     'label' => 'Formation',
-    'description' => 'Groupe dedie a une formation de plongee.',
+    'description' => 'Groupe dédié à une formation de plongeurs.',
     'creator_membership' => FALSE,
   ]);
   $group_type->save();
@@ -90,26 +90,30 @@ function _aquarius_formations_create_synchronized_group_roles(): void {
   foreach ($user_roles as $user_role) {
     $role_id = $user_role->id();
 
-    if ($role_id === 'anonymous') {
-      continue;
+    $scopes = ['outsider'];
+    if ($role_id !== 'anonymous') {
+      $scopes[] = 'insider';
     }
 
-    $group_role_id = 'formation-insider-' . $role_id;
-    if ($group_role_storage->load($group_role_id)) {
-      continue;
-    }
+    foreach ($scopes as $scope) {
+      $group_role_id = 'formation-' . $scope . '-' . $role_id;
+      if ($group_role_storage->load($group_role_id)) {
+        continue;
+      }
 
-    $group_role = $group_role_storage->create([
-      'id' => $group_role_id,
-      'label' => $user_role->label(),
-      'group_type' => 'formation',
-      'scope' => 'insider',
-      'global_role' => $role_id,
-      'weight' => 10,
-      'admin' => FALSE,
-      'permissions' => [],
-    ]);
-    $group_role->save();
+      $suffix = $scope === 'insider' ? 'membre' : 'non membre';
+      $group_role = $group_role_storage->create([
+        'id' => $group_role_id,
+        'label' => $user_role->label() . ' (' . $suffix . ')',
+        'group_type' => 'formation',
+        'scope' => $scope,
+        'global_role' => $role_id,
+        'weight' => 10,
+        'admin' => FALSE,
+        'permissions' => [],
+      ]);
+      $group_role->save();
+    }
   }
 }
 
@@ -504,6 +508,15 @@ function aquarius_formations_update_10002(): string {
   _aquarius_formations_create_synchronized_group_roles();
 
   return 'Roles du site propages automatiquement au type de groupe Formation.';
+}
+
+/**
+ * Ajoute les roles synchronises outsider pour le type de groupe Formation.
+ */
+function aquarius_formations_update_10003(): string {
+  _aquarius_formations_create_synchronized_group_roles();
+
+  return 'Roles synchronises insider et outsider appliques au type Formation.';
 }
 
 /**
