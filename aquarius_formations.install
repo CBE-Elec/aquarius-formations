@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Datetime\Entity\DateFormat;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Config\FileStorage;
@@ -14,8 +15,11 @@ use Drupal\node\Entity\NodeType;
  */
 function aquarius_formations_install(): void {
   _aquarius_formations_create_group_type();
+  _aquarius_formations_disable_group_revisions();
   _aquarius_formations_create_group_roles();
   _aquarius_formations_create_synchronized_group_roles();
+  _aquarius_formations_ensure_niveaux_ffessm_view();
+  _aquarius_formations_ensure_date_format();
   _aquarius_formations_create_group_fields();
   _aquarius_formations_configure_group_form_display();
   _aquarius_formations_configure_group_view_display();
@@ -54,10 +58,8 @@ function _aquarius_formations_disable_group_revisions(): void {
     return;
   }
 
-  if ($group_type->shouldCreateNewRevision()) {
-    $group_type->setNewRevision(FALSE);
-    $group_type->save();
-  }
+  $group_type->setNewRevision(FALSE);
+  $group_type->save();
 }
 
 /**
@@ -170,19 +172,8 @@ function _aquarius_formations_get_synchronized_group_role_permissions($user_role
     $permissions[] = 'administer members';
   }
 
-  if ($user_role->hasPermission('administer permissions')) {
-    $permissions[] = 'view group';
-    $permissions[] = 'update group';
-    $permissions[] = 'administer members';
-  }
 
   if ($user_role->hasPermission('administer group')) {
-    $permissions[] = 'view group';
-    $permissions[] = 'update group';
-    $permissions[] = 'administer members';
-  }
-
-  if ($user_role->hasPermission('administer group types')) {
     $permissions[] = 'view group';
     $permissions[] = 'update group';
     $permissions[] = 'administer members';
@@ -195,7 +186,7 @@ function _aquarius_formations_get_synchronized_group_role_permissions($user_role
  * Indique si un role global doit etre synchronise en role de groupe Formation.
  */
 function _aquarius_formations_should_sync_user_role($user_role): bool {
-  foreach (['administer users', 'administer permissions', 'administer group', 'administer group types'] as $permission) {
+  foreach (['administer users', 'administer group'] as $permission) {
     if ($user_role->hasPermission($permission)) {
       return TRUE;
     }
@@ -309,6 +300,8 @@ function _aquarius_formations_configure_group_form_display(): void {
  * Configure l'affichage du groupe formation.
  */
 function _aquarius_formations_configure_group_view_display(): void {
+  _aquarius_formations_ensure_date_format();
+
   $display = EntityViewDisplay::load('group.formation.default');
 
   if (!$display) {
@@ -323,7 +316,7 @@ function _aquarius_formations_configure_group_view_display(): void {
 
   $display->setComponent('field_formation_niveau', [
     'type' => 'entity_reference_label',
-    'label' => 'above',
+    'label' => 'inline',
     'weight' => 10,
     'settings' => [
       'link' => FALSE,
@@ -332,7 +325,7 @@ function _aquarius_formations_configure_group_view_display(): void {
 
   $display->setComponent('field_formation_saison', [
     'type' => 'entity_reference_label',
-    'label' => 'above',
+    'label' => 'inline',
     'weight' => 11,
     'settings' => [
       'link' => FALSE,
@@ -341,17 +334,17 @@ function _aquarius_formations_configure_group_view_display(): void {
 
   $display->setComponent('field_formation_date_debut', [
     'type' => 'datetime_default',
-    'label' => 'above',
+    'label' => 'inline',
     'weight' => 12,
     'settings' => [
       'timezone_override' => '',
-      'format_type' => 'medium',
+      'format_type' => 'aquarius_date',
     ],
   ]);
 
   $display->setComponent('field_formation_etat', [
     'type' => 'list_default',
-    'label' => 'above',
+    'label' => 'inline',
     'weight' => 13,
     'settings' => [],
   ]);
@@ -386,11 +379,12 @@ function _aquarius_formations_create_niveau_field(): void {
       'label' => 'Niveau prepare',
       'required' => TRUE,
       'settings' => [
-        'handler' => 'default:taxonomy_term',
+        'handler' => 'views',
         'handler_settings' => [
-          'target_bundles' => [
-            'niveau_plongee' => 'niveau_plongee',
-            'qualifications' => 'qualifications',
+          'view' => [
+            'view_name' => 'niveaux_ffessm',
+            'display_name' => 'entity_reference_2',
+            'arguments' => [],
           ],
         ],
       ],
@@ -447,6 +441,9 @@ function _aquarius_formations_create_date_debut_field(): void {
         'datetime_type' => 'date',
       ],
     ])->save();
+  }
+  else {
+    _aquarius_formations_ensure_date_debut_date_only();
   }
 
   if (!FieldConfig::loadByName('group', 'formation', 'field_formation_date_debut')) {
@@ -858,6 +855,65 @@ function aquarius_formations_update_10014(): string {
 }
 
 /**
+ * Configure le niveau prepare avec la vue de reference FFESSM.
+ */
+function aquarius_formations_update_10015(): string {
+  _aquarius_formations_ensure_niveaux_ffessm_view();
+  _aquarius_formations_update_niveau_target_bundles();
+
+  return 'Champ Niveau prepare configure avec la vue niveaux_ffessm (FFESSM).';
+}
+
+/**
+ * Aligne les libelles d'affichage et affiche la date sans heure.
+ */
+function aquarius_formations_update_10016(): string {
+  _aquarius_formations_ensure_date_format();
+  _aquarius_formations_ensure_date_debut_date_only();
+  _aquarius_formations_configure_group_view_display();
+  _aquarius_formations_sync_views_config();
+
+  return 'Affichage des champs Formation configure avec libelles inline et date sans heure.';
+}
+
+/**
+ * Desactive la creation automatique de revisions sur les formations.
+ */
+function aquarius_formations_update_10017(): string {
+  _aquarius_formations_disable_group_revisions();
+
+  return 'Gestion des versions des groupes Formation desactivee.';
+}
+
+/**
+ * Cree le format de date utilise pour les formations.
+ */
+function _aquarius_formations_ensure_date_format(): void {
+  if (DateFormat::load('aquarius_date')) {
+    return;
+  }
+
+  DateFormat::create([
+    'id' => 'aquarius_date',
+    'label' => 'Date Aquarius',
+    'pattern' => 'd/m/Y',
+  ])->save();
+}
+
+/**
+ * Force le champ Date de debut en stockage date-only.
+ */
+function _aquarius_formations_ensure_date_debut_date_only(): void {
+  $storage = FieldStorageConfig::loadByName('group', 'field_formation_date_debut');
+  if (!$storage || $storage->getSetting('datetime_type') === 'date') {
+    return;
+  }
+
+  $storage->setSetting('datetime_type', 'date');
+  $storage->save();
+}
+
+/**
  * Synchronise les permissions des roles de groupe de la formation.
  */
 function _aquarius_formations_update_group_role_permissions(): void {
@@ -886,10 +942,13 @@ function _aquarius_formations_update_niveau_target_bundles(): void {
   }
 
   $settings = $field->getSettings();
-  $settings['handler'] = 'default:taxonomy_term';
-  $settings['handler_settings']['target_bundles'] = [
-    'niveau_plongee' => 'niveau_plongee',
-    'qualifications' => 'qualifications',
+  $settings['handler'] = 'views';
+  $settings['handler_settings'] = [
+    'view' => [
+      'view_name' => 'niveaux_ffessm',
+      'display_name' => 'entity_reference_2',
+      'arguments' => [],
+    ],
   ];
 
   $field->set('settings', $settings);
@@ -919,6 +978,7 @@ function _aquarius_formations_sync_views_config(): void {
   $default_config = new FileStorage(DRUPAL_ROOT . '/' . $module_path . '/config/install');
 
   $config_names = [
+    'views.view.niveaux_ffessm',
     'views.view.formation',
     'views.view.formation_membres',
   ];
@@ -932,6 +992,10 @@ function _aquarius_formations_sync_views_config(): void {
     $active = \Drupal::configFactory()->getEditable($config_name);
     $existing = $active->getRawData();
 
+    if ($config_name === 'views.view.niveaux_ffessm' && !$active->isNew()) {
+      continue;
+    }
+
     // Conserve l'UUID existant pour eviter toute rupture de references.
     if (!empty($existing['uuid'])) {
       $data['uuid'] = $existing['uuid'];
@@ -939,4 +1003,23 @@ function _aquarius_formations_sync_views_config(): void {
 
     $active->setData($data)->save();
   }
+}
+
+/**
+ * Cree la vue niveaux_ffessm depuis config/install si elle est absente.
+ */
+function _aquarius_formations_ensure_niveaux_ffessm_view(): void {
+  $active = \Drupal::configFactory()->getEditable('views.view.niveaux_ffessm');
+  if (!$active->isNew()) {
+    return;
+  }
+
+  $module_path = \Drupal::service('extension.list.module')->getPath('aquarius_formations');
+  $default_config = new FileStorage(DRUPAL_ROOT . '/' . $module_path . '/config/install');
+  $data = $default_config->read('views.view.niveaux_ffessm');
+  if (!is_array($data) || $data === []) {
+    return;
+  }
+
+  $active->setData($data)->save();
 }

@@ -338,7 +338,7 @@ display:
           type: datetime_default
           settings:
             timezone_override: ''
-            format_type: medium
+            format_type: aquarius_date
           group_column: value
           group_columns: {  }
           group_rows: true
