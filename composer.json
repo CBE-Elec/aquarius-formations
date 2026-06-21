@@ -3,6 +3,7 @@
   "description": "Module Drupal de gestion des formations de plongee.",
   "type": "drupal-module",
   "license": "GPL-2.0-or-later",
+  "minimum-stability": "stable",
   "require": {
     "drupal/core": "^10 || ^11",
     "drupal/group": "^3.3"
