@@ -34,9 +34,9 @@ final class AquariusFormationsSettingsForm extends ConfigFormBase {
 
     $form['enable_attendance_indicator'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('Activer l''indicateur d''assiduite'),
+      '#title' => $this->t("Activer l'indicateur d'assiduite"),
       '#default_value' => (bool) $config->get('enable_attendance_indicator'),
-      '#description' => $this->t('Si active, le module expose des indicateurs d''assiduite pour les eleves.'),
+      '#description' => $this->t("Si active, le module expose des indicateurs d'assiduite pour les eleves."),
     ];
 
     $form['evaluation_input_mode'] = [
