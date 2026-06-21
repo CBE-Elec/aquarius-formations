@@ -466,7 +466,7 @@ display:
           override: true
           sticky: true
           summary: ''
-          empty_table: false
+          empty_table: true
           caption: ''
           description: ''
       row:

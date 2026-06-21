@@ -886,6 +886,15 @@ function aquarius_formations_update_10017(): string {
 }
 
 /**
+ * Affiche les entetes du tableau des membres meme sans resultat.
+ */
+function aquarius_formations_update_10018(): string {
+  _aquarius_formations_sync_views_config();
+
+  return 'Vue des membres de formation synchronisee avec les entetes de tableau visibles a vide.';
+}
+
+/**
  * Cree le format de date utilise pour les formations.
  */
 function _aquarius_formations_ensure_date_format(): void {
